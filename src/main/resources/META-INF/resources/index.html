@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+  <meta charset="UTF-8">
+  <title>sse-demo</title>
+  <style type="text/css">
+    .info, .warn, .error {
+      margin: 10px 0px;
+      padding: 12px;
+    }
+
+    .info {
+      color: #00529B;
+      background-color: #BDE5F8;
+    }
+
+    .warn {
+      color: #9F6000;
+      background-color: #FEEFB3;
+    }
+
+    .error {
+      color: #D8000C;
+      background-color: #FFD2D2;
+    }
+
+    .info i, .warn i, .error i {
+      margin: 10px 22px;
+      font-size: 2em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+
+<form>
+  <label>
+    <select id="event">
+      <option value="info">info</option>
+      <option value="error">error</option>
+      <option value="warn">warn</option>
+    </select>
+  </label>
+  <label>
+    <input id="msg">
+  </label>
+  <button type="button" id="send">send</button>
+</form>
+<div id="show"></div>
+<script src="https://cdn.bootcss.com/node-uuid/1.4.8/uuid.min.js"></script>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript">
+  const id = uuid.v4();
+  $(function () {
+    let source = new EventSource("/register/" + id);
+    console.log(source.readyState);
+    source.onopen = function (event) {
+      console.log(event)
+    };
+    source.onerror = function (event) {
+      console.log(event)
+    };
+    source.onmessage = function (event) {
+      let dataStr = event.data;
+      if(dataStr){
+        let messages = JSON.parse(dataStr);
+        for (const msg of messages) {
+          if('json' === msg.mediaType.type || 'json' === msg.mediaType.subtype ){
+            $("#show").removeClass()
+              .addClass(msg.data.event)
+              .html(msg.data.msg)
+          }
+        }
+      }
+    };
+
+    $(window).on("beforeunload", function() {
+      source.close();
+      return true;
+    })
+  });
+  $("#send").click(function () {
+    $.ajax({
+      url: "/send",
+      type: "POST",
+      data: JSON.stringify({
+        id: id,
+        event: $("#event").val(),
+        name: "test",
+        msg: $("#msg").val()
+      }),
+      contentType: "application/json; charset=utf-8",
+      dataType: "json",
+      success: function (data, status, xhr) {
+        console.log("sended")
+      }
+    });
+  });
+</script>
+</body>
+</html>
